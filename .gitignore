@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.next/
+.env
+.env.*
+!.env.example
+*.log
+coverage/
+# The official ZATCA SDK is downloaded locally (see README), never committed.
+tools/zatca-sdk/
+# Local onboarding output: private keys and ZATCA secrets.
+.zatca/

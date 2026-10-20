@@ -14,13 +14,15 @@ const ADMIN_URL = process.env.TEST_DATABASE_URL ?? "postgres://postgres:postgres
 const dbName = `fatoora_test_${randomUUID().slice(0, 8)}`;
 const admin = postgres(ADMIN_URL, { max: 1, onnotice: () => {} });
 const pgUp = await admin`select 1`.then(() => true, () => false);
+// With TEST_DATABASE_URL set (CI), an unreachable database fails the run instead of skipping it.
+const pgRequired = Boolean(process.env.TEST_DATABASE_URL);
 
 const fixtures = join(import.meta.dirname, "..", "..", "zatca", "test", "fixtures", "sdk-cert");
 const certificate = readFileSync(join(fixtures, "cert.pem"), "utf8").trim();
 const keyBody = readFileSync(join(fixtures, "ec-secp256k1-priv-key.pem"), "utf8").trim();
 const privateKeyPem = `-----BEGIN EC PRIVATE KEY-----\n${keyBody.match(/.{1,64}/g)!.join("\n")}\n-----END EC PRIVATE KEY-----\n`;
 
-describe.runIf(pgUp)("issueInvoice against PostgreSQL", () => {
+describe.runIf(pgUp || pgRequired)("issueInvoice against PostgreSQL", () => {
   let db: Db;
   let ctx: CoreContext;
   let orgId: string;

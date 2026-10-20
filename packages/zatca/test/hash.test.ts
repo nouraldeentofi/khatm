@@ -21,8 +21,18 @@ describe("invoiceHash", () => {
   }
 });
 
+const hasXmllint = (() => {
+  try {
+    execFileSync("xmllint", ["--version"], { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
 describe("canonicalize", () => {
-  it("agrees with libxml2 (xmllint --c14n11) on every SDK sample", () => {
+  // CI installs libxml2-utils; elsewhere the cross-check runs when xmllint is on the PATH.
+  it.runIf(hasXmllint)("agrees with libxml2 (xmllint --c14n11) on every SDK sample", () => {
     const dir = mkdtempSync(join(tmpdir(), "c14n-"));
     for (const sample of sdkSamples()) {
       const file = join(dir, sample.name);

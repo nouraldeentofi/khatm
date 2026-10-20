@@ -1,0 +1,32 @@
+name: pages
+# Rebuilds the public demo (apps/demo) and publishes it to the gh-pages branch,
+# which GitHub Pages serves at https://nouraldeentofi.github.io/khatm/
+on:
+  push:
+    branches: [main]
+    paths: ["apps/demo/**", "packages/zatca/src/**", "pnpm-lock.yaml", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
+      - uses: actions/setup-node@v6
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @khatm/demo build
+      - name: Publish to gh-pages
+        working-directory: apps/demo/dist/site
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git init -q -b gh-pages
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "Deploy demo from ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

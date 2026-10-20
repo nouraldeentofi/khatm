@@ -71,8 +71,8 @@ export function previewTotals(draft: Draft) {
 }
 
 /** Builds, hashes and signs the next document on the demo device's chain. */
-export function issue(draft: Draft, chain: { icv: number; lastHash: string; number: string }): IssuedDoc {
-  const now = formatRiyadhTime(new Date());
+export function issue(draft: Draft, chain: { icv: number; lastHash: string; number: string }, at = new Date()): IssuedDoc {
+  const now = formatRiyadhTime(at);
   const input: InvoiceInput = {
     ...draft,
     number: chain.number,

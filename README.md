@@ -49,12 +49,15 @@ pnpm --filter @khatm/zatca onboard --env sandbox
 
 ## النسخة التجريبية (apps/demo)
 
-صفحة واحدة بتشغّل نفس كود `packages/zatca` بالمتصفح: بتصدر فاتورة ضريبية أو مبسطة أو إشعار دائن/مدين،
-بتوقّعها بشهادة زاتكا التجريبية المنشورة بحزمة الـ SDK، وبتعرض الفاتورة ورمز QR وملف XML وسلسلة ICV/PIH.
-ما في إرسال لزاتكا، والمستندات ما إلها أي أثر ضريبي.
+**جرّبها:** https://nouraldeentofi.github.io/khatm/
+
+تطبيق صغير بتجربة العميل: قائمة فواتير مصنّفة حسب العميل، إصدار فاتورة ضريبية لمنشأة أو مبسطة لفرد،
+إشعار دائن أو مدين من صفحة الفاتورة، طباعة وحفظ PDF، وإرسال عبر واتساب. بيشتغل كله بالمتصفح بنفس كود
+`packages/zatca`، وبيوقّع بشهادة زاتكا التجريبية المنشورة بحزمة الـ SDK. ما في إرسال لزاتكا، والمستندات ما إلها أي أثر ضريبي.
+كل دفعة على `main` بتعيد بناء الموقع ونشره (`.github/workflows/pages.yml`).
 
 ```bash
-pnpm --filter @khatm/demo build   # → apps/demo/dist/index.html
+pnpm --filter @khatm/demo build   # → dist/site/index.html (الموقع) و dist/index.html (نسخة Artifact)
 pnpm --filter @khatm/demo e2e     # Chromium: يصدر الأنواع الستة ويمررها على مدقّق زاتكا الرسمي
 ```
 

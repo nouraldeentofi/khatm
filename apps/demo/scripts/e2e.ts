@@ -1,11 +1,11 @@
-// Drives the built page in Chromium the way a person would, then hands every document it
-// issued to ZATCA's official SDK validator. Run after `pnpm build`.
-//   CHROMIUM=/path/to/chrome pnpm --filter @khatm/demo test
+// Uses the built site in Chromium the way a customer would, then hands every document
+// it issued to ZATCA's official SDK validator. Run after the build:
+//   pnpm --filter @khatm/demo e2e        (CHROMIUM=/path/to/chrome to override)
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { chromium, type Page } from "playwright-core";
+import { chromium } from "playwright-core";
 import { sdkAvailable, sdkValidate } from "../../../packages/zatca/test/sdk.ts";
-import type { IssuedDoc } from "../src/engine.ts";
+import type { Store } from "../src/data.ts";
 
 const root = join(import.meta.dirname, "..");
 const shots = process.env.SHOTS_DIR;
@@ -30,54 +30,105 @@ await page.route("https://cdnjs.cloudflare.com/**", (route) => {
 });
 await page.route("https://fonts.googleapis.com/**", (route) => route.fulfill({ contentType: "text/css", body: "" }));
 
-await page.goto(`file://${join(root, "dist", "standalone.html")}`);
-await page.getByRole("tab", { name: "الفاتورة" }).waitFor();
-check((await page.locator(".chain li").count()) === 1, "opens with one sample document issued");
-check((await page.locator(".paper .qr svg").count()) === 1, "sample invoice shows a QR code");
-if (shots) await page.screenshot({ path: join(shots, "desktop.png"), fullPage: true });
-
-const choose = (name: string) => page.locator(".segmented label", { hasText: name }).first().click();
-const issueDoc = async () => {
-  const before = await page.locator(".chain li").count();
+const shot = async (name: string) => shots && page.screenshot({ path: join(shots, `${name}.png`), fullPage: true });
+const rows = () => page.locator("button.row").count();
+const store = async () => JSON.parse((await page.evaluate(() => localStorage.getItem("khatm-demo-v2"))) ?? "{}") as Store;
+const toList = async () => {
+  await page.locator(".brand").click();
+  await page.locator("#new-invoice").waitFor();
+};
+const fillItem = async (i: number, name: string, qty: string, price: string) => {
+  await page.locator(`#item-${i}-name`).fill(name);
+  await page.locator(`#item-${i}-qty`).fill(qty);
+  await page.locator(`#item-${i}-price`).fill(price);
+};
+const issueAndOpen = async () => {
   await page.locator("#issue").click();
-  await page.waitForFunction((n) => document.querySelectorAll(".chain li").length === n + 1, before);
+  await page.locator("article.document").waitFor();
 };
 
-await choose("مبسطة");
-await issueDoc();
-await choose("إشعار دائن");
-await issueDoc();
-await choose("ضريبية");
-await issueDoc();
-await choose("إشعار مدين");
-await issueDoc();
-await choose("مبسطة");
-await issueDoc();
+await page.goto(`file://${join(root, "dist", "site", "index.html")}`);
+await page.locator("#new-invoice").waitFor();
+check((await rows()) === 6, "opens on the invoice list with a week of example documents");
+await shot("1-list");
 
-// A tax invoice without any buyer identifier must be stopped, in Arabic.
-await choose("فاتورة");
-await choose("ضريبية");
-await page.locator("#buyer-vat").fill("");
+await page.locator(".filters button", { hasText: "مؤسسة نجد" }).click();
+check((await rows()) === 2, "filtering by customer shows that customer's invoice and credit note");
+await page.locator(".filters button", { hasText: "الكل" }).click();
+
+// Tax invoice to an existing business customer.
+await page.locator("#new-invoice").click();
+await fillItem(0, "لوحة تحكم إنذار حريق 8 مناطق", "1", "4200");
+await page.locator("#add-item").click();
+await fillItem(1, "كاشف حرارة", "10", "48.5");
+await shot("2-editor");
+await issueAndOpen();
+check((await page.locator("h1").innerText()).includes("فاتورة ضريبية"), "issues a tax invoice and opens it");
+check((await page.locator(".doc-totals .grand").innerText()).includes("5,387.75"), "invoice total is 4,685.00 + 15% VAT = 5,387.75");
+check(await page.getByRole("button", { name: "طباعة أو حفظ PDF" }).isVisible(), "offers print / save as PDF on the public site");
+await shot("3-invoice");
+
+// Simplified invoice to a walk-in customer, then a credit note on it.
+await toList();
+await page.locator("#new-invoice").click();
+await page.locator("label[class] >> text=فرد").click();
+await fillItem(0, "طفاية ثاني أكسيد الكربون 5 كغ", "2", "210");
+await issueAndOpen();
+check((await page.locator("h1").innerText()).includes("فاتورة ضريبية مبسطة"), "issues a simplified invoice for an individual");
+await page.locator("#credit-note").click();
+await page.locator(".reasons button", { hasText: "إرجاع بضاعة" }).click();
+await issueAndOpen();
+check((await page.locator("h1").innerText()).includes("إشعار دائن"), "issues a credit note from the invoice page");
+await page.locator(".related .text-btn").first().click();
+await page.locator("#debit-note").click();
+await fillItem(0, "رسوم توصيل", "1", "25");
+await page.locator(".reasons button", { hasText: "رسوم توصيل" }).click();
+await issueAndOpen();
+check((await page.locator("h1").innerText()).includes("إشعار مدين"), "issues a debit note on the simplified invoice via its credit note's link");
+
+// Debit note on another business customer's invoice.
+await toList();
+await page.locator("button.row", { hasText: "شركة الخليج" }).first().click();
+await page.locator("#debit-note").click();
+await fillItem(0, "فرق سعر صمامات", "1", "120");
+await page.locator(".reasons button", { hasText: "فرق سعر" }).click();
+await issueAndOpen();
+check((await page.locator("h1").innerText()).includes("إشعار مدين"), "issues a debit note");
+
+// A new business customer: incomplete details are stopped in Arabic, complete ones go through.
+await toList();
+const before = await rows();
+await page.locator("#new-invoice").click();
+await page.locator("#customer").selectOption("__new");
+await page.locator("#new-name").fill("شركة الريادة للتجارة");
+await fillItem(0, "توريد معدات", "1", "900");
 await page.locator("#issue").click();
-const errorText = await page.locator(".problems.loud").innerText();
-check(errorText.includes("أدخل الرقم الضريبي للمشتري أو رقم سجله التجاري"), "blocks a tax invoice with no buyer ID, in Arabic");
-check((await page.locator(".chain li").count()) === 6, "a blocked document takes no counter value");
-
-await page.locator("#tab-zatca").click();
-check((await page.locator(".check.ok").count()) === 1, "'What ZATCA sees' confirms the PIH link");
-
-const docs = JSON.parse((await page.evaluate(() => localStorage.getItem("khatm-demo-chain-v1"))) ?? "[]") as IssuedDoc[];
-const kinds = docs.map((d) => `${d.audience}:${d.kind}`);
+const problems = await page.locator(".problems").innerText();
 check(
-  JSON.stringify(kinds) ===
-    JSON.stringify(["standard:invoice", "simplified:invoice", "simplified:credit_note", "standard:credit_note", "standard:debit_note", "simplified:debit_note"]),
-  `covers the six compliance document types (${kinds.join(", ")})`,
+  problems.includes("أدخل الرقم الضريبي للعميل أو رقم سجله التجاري") && problems.includes("أكمل العنوان الوطني للعميل: الشارع، رقم المبنى، الحي، المدينة، الرمز البريدي"),
+  "stops a tax invoice with no customer ID or address, in Arabic",
 );
-check(docs.every((d, i) => d.icv === i + 1), "ICV runs 1..6");
-check(docs.every((d, i) => i === 0 || d.pih === docs[i - 1]!.hash), "each PIH is the previous document's hash");
+await page.locator("#new-cr").fill("1010987654");
+await page.locator("#new-street").fill("طريق الملك عبدالعزيز");
+await page.locator("#new-building").fill("6621");
+await page.locator("#new-district").fill("الملقا");
+await page.locator("#new-city").fill("الرياض");
+await page.locator("#new-postal").fill("13521");
+await issueAndOpen();
+await page.locator(".accountant summary").click();
+check((await page.locator(".tech-note").innerText()).startsWith("مطابقة"), "accountant details confirm the chain link");
+await toList();
+check((await rows()) === before + 1, "a blocked attempt takes no number; the corrected one does");
+check((await page.locator(".filters button", { hasText: "شركة الريادة" }).count()) === 1, "the new customer gets its own filter");
+
+const s = await store();
+check(s.docs.every((d, i) => d.icv === i + 1), `ICV runs 1..${s.docs.length} with no gaps`);
+check(s.docs.every((d, i) => i === 0 || d.pih === s.docs[i - 1]!.hash), "each document carries the previous one's hash");
+const kinds = new Set(s.docs.map((d) => `${d.audience}:${d.kind}`));
+check(kinds.size === 6, `covers all six compliance document types (${[...kinds].join(", ")})`);
 
 if (sdkAvailable) {
-  for (const d of docs) {
+  for (const d of s.docs) {
     const r = await sdkValidate(d.xml, `${d.number}.xml`, { pih: d.pih });
     check(r.passed && r.errors.length === 0, `SDK accepts ${d.number} (${d.audience} ${d.kind})${r.errors.length ? `: ${r.errors.join("; ")}` : ""}`);
   }
@@ -86,16 +137,14 @@ if (sdkAvailable) {
 }
 
 if (shots) {
-  await page.locator("#tab-doc").click();
-  await screenshotPhone(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await shot("4-list-phone-dark");
+  await page.locator("button.row").first().click();
+  await page.locator("article.document").waitFor();
+  await shot("5-invoice-phone-dark");
 }
 
 check(consoleErrors.length === 0, `no console errors${consoleErrors.length ? `: ${consoleErrors.join(" | ")}` : ""}`);
 await browser.close();
 process.exit(failures ? 1 : 0);
-
-async function screenshotPhone(p: Page) {
-  await p.setViewportSize({ width: 390, height: 844 });
-  await p.emulateMedia({ colorScheme: "dark" });
-  await p.screenshot({ path: join(shots!, "phone-dark.png"), fullPage: true });
-}

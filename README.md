@@ -10,7 +10,9 @@ packages/
   zatca/   مكتبة زاتكا: UBL 2.1، التجزئة (C14N 1.1)، التوقيع، QR، CSR، عميل API، معالج الربط
   db/      مخطط PostgreSQL (Drizzle) + ترحيلات + حمايات على مستوى القاعدة
   core/    إصدار الفاتورة (ICV/PIH بلا فجوات تحت التزامن) وإرسالها لزاتكا
-apps/      (قادم) تطبيق Next.js والـ Worker
+apps/
+  demo/    صفحة تجريبية بتشغّل المحرّك بالمتصفح (بدون سيرفر)
+  (قادم)   تطبيق Next.js والـ Worker
 scripts/   zatca-sdk.sh · setup-sdk.sh
 tools/     zatca-sdk/ — حزمة SDK الرسمية (لا تُرفع للمستودع)
 ```
@@ -44,6 +46,20 @@ pnpm --filter @khatm/zatca onboard --env sandbox
 المفاتيح والأسرار بتنحفظ في `.zatca/` (مستثناة من git، صلاحيات 600).
 
 للمحاكاة برقم ضريبي حقيقي: `--env simulation --otp <من بوابة فاتورة> --profile company.json`.
+
+## النسخة التجريبية (apps/demo)
+
+صفحة واحدة بتشغّل نفس كود `packages/zatca` بالمتصفح: بتصدر فاتورة ضريبية أو مبسطة أو إشعار دائن/مدين،
+بتوقّعها بشهادة زاتكا التجريبية المنشورة بحزمة الـ SDK، وبتعرض الفاتورة ورمز QR وملف XML وسلسلة ICV/PIH.
+ما في إرسال لزاتكا، والمستندات ما إلها أي أثر ضريبي.
+
+```bash
+pnpm --filter @khatm/demo build   # → apps/demo/dist/index.html
+pnpm --filter @khatm/demo e2e     # Chromium: يصدر الأنواع الستة ويمررها على مدقّق زاتكا الرسمي
+```
+
+بالمتصفح، `node:crypto` بيتبدّل بـ `src/node-crypto-shim.ts` (SHA-256 وECDSA secp256k1 عبر مكتبات noble،
+وقراءة الشهادة بمحلّل DER تبع المكتبة)، فالكود اللي بيبني ويوقّع هو نفسه بدون أي تعديل.
 
 ## قرارات تقنية مهمة
 

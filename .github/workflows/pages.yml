@@ -1,10 +1,9 @@
 name: pages
-# Rebuilds the public demo (apps/demo) and publishes it to the gh-pages branch,
-# which GitHub Pages serves at https://nouraldeentofi.github.io/khatm/
+# Builds the public demo (apps/demo) and publishes it to the gh-pages branch.
+# Manual only: Chrome's Safe Browsing flagged the github.io copy (a new page on a free
+# host that names ZATCA and asks for tax numbers looks like phishing to its classifier).
+# The demo goes back up on the product's own domain.
 on:
-  push:
-    branches: [main]
-    paths: ["apps/demo/**", "packages/zatca/src/**", "pnpm-lock.yaml", ".github/workflows/pages.yml"]
   workflow_dispatch:
 permissions:
   contents: write

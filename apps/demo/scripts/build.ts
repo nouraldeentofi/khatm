@@ -24,15 +24,24 @@ const zodEnglishOnly: Plugin = {
 
 type Host = "artifact" | "pages";
 
+// The Artifact build loads React from cdnjs (the viewer's allow-listed host); the public
+// site bundles it so it never depends on a third-party script host.
+const reactFromCdn: Plugin = {
+  name: "react-from-cdn",
+  setup(b) {
+    b.onResolve({ filter: /react-global\.ts$/ }, () => ({ path: src("react-global.cdn.ts") }));
+  },
+};
+
 async function bundle(host: Host): Promise<string> {
   const result = await build({
     entryPoints: [src("main.tsx")],
-    plugins: [zodEnglishOnly],
+    plugins: host === "artifact" ? [zodEnglishOnly, reactFromCdn] : [zodEnglishOnly],
     bundle: true,
     write: false,
     format: "iife",
     platform: "browser",
-    target: "es2022",
+    target: "es2020",
     minify: true,
     legalComments: "none",
     jsx: "transform",
@@ -49,7 +58,25 @@ export const REACT_URL = "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/um
 export const REACT_DOM_URL = "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js";
 const css = readFileSync(src("styles.css"), "utf8");
 
-const page = (js: string) => `<title>ختم للفوترة</title>
+// If the app has not drawn anything a few seconds after load, say so on the page and show
+// what failed, rather than leaving a blank screen.
+const bootGuard = `<script>
+(function () {
+  var errors = [];
+  window.addEventListener("error", function (e) {
+    var t = e.target;
+    errors.push(t && t.src ? "تعذّر تحميل: " + t.src : (e.message || "خطأ غير معروف"));
+  }, true);
+  setTimeout(function () {
+    var root = document.getElementById("root");
+    if (!root || root.childNodes.length) return;
+    root.innerHTML = '<div class="crash" role="alert" style="margin:32px auto"><h2>تعذّر تشغيل الصفحة</h2><p>جرّب تحديث الصفحة. إذا استمرت المشكلة، أرسل لنا النص التالي مع اسم المتصفح.</p><pre></pre></div>';
+    root.querySelector("pre").textContent = (errors.join("\\n") || "لم يكتمل التحميل") + "\\n" + navigator.userAgent;
+  }, 6000);
+})();
+</script>`;
+
+const page = (js: string, host: Host) => `<title>ختم للفوترة</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="جرّب إصدار فاتورة إلكترونية متوافقة مع المرحلة الثانية من زاتكا: فاتورة ضريبية ومبسطة وإشعارات دائنة ومدينة.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,8 +85,8 @@ const page = (js: string) => `<title>ختم للفوترة</title>
 <style>${css}</style>
 <div id="root"></div>
 <script>document.documentElement.lang = "ar"; document.documentElement.dir = "rtl";</script>
-<script src="${REACT_URL}"></script>
-<script src="${REACT_DOM_URL}"></script>
+${bootGuard}
+${host === "artifact" ? `<script src="${REACT_URL}"></script>\n<script src="${REACT_DOM_URL}"></script>` : ""}
 <script>${js}</script>
 `;
 
@@ -68,8 +95,8 @@ const fullDocument = (body: string) =>
 
 // dist/index.html → published as an Artifact (the viewer adds the document skeleton).
 // dist/site/index.html → the public site on GitHub Pages, where print and download work.
-const artifact = page(await bundle("artifact"));
-const site = fullDocument(page(await bundle("pages")));
+const artifact = page(await bundle("artifact"), "artifact");
+const site = fullDocument(page(await bundle("pages"), "pages"));
 mkdirSync(join(root, "dist", "site"), { recursive: true });
 writeFileSync(join(root, "dist", "index.html"), artifact);
 writeFileSync(join(root, "dist", "site", "index.html"), site);

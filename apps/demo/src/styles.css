@@ -190,7 +190,7 @@ button { cursor: pointer; }
   .figures > div:nth-child(3) { grid-column: 1 / -1; border-inline-start: 0; border-top: 1px solid var(--rule); padding-inline-start: 0; }
 }
 
-.filters { display: flex; gap: 2px 18px; overflow-x: auto; border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+.filters { display: flex; gap: 2px 18px; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--rule); margin-bottom: 4px; scrollbar-width: thin; }
 .filters button {
   background: none;
   border: 0;
@@ -460,6 +460,11 @@ input.ltr { text-align: left; }
 .tech dt { color: var(--ink-3); font-size: var(--t-xs); padding-top: 2px; }
 .tech dd { font-family: var(--mono); font-size: var(--t-xs); overflow-wrap: anywhere; text-align: left; display: grid; gap: 2px; }
 .tech-note { font-family: var(--font); color: var(--brand); text-align: right; }
+
+/* ---------- when something breaks */
+.crash { max-width: 640px; display: grid; gap: 12px; padding: 24px; background: var(--panel); border: 1px solid var(--rule); border-radius: var(--r); }
+.crash pre { margin: 0; padding: 10px 12px; background: var(--canvas); border-radius: var(--r); font-family: var(--mono); font-size: var(--t-xs); white-space: pre-wrap; overflow-wrap: anywhere; direction: ltr; text-align: left; max-height: 220px; overflow: auto; }
+.crash .actions { margin-top: 4px; }
 
 /* ---------- footer */
 .footer {

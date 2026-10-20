@@ -116,7 +116,7 @@ export function Editor({
       };
     }
     next = append(next, draft, id);
-    onIssued(next, next.docs.at(-1)!.uuid);
+    onIssued(next, next.docs[next.docs.length - 1]!.uuid);
   };
 
   const today = new Date(Date.now() + 3 * 3600_000).toISOString().slice(0, 10);

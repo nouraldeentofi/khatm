@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { clearStore, loadStore, saveStore, seedStore, SELLER, type Store } from "./data.ts";
 import { Editor, type EditorStart } from "./views/editor.tsx";
 import { InvoicePage } from "./views/invoice.tsx";
@@ -7,13 +8,47 @@ const { useEffect, useState } = React;
 
 export type View = { name: "list" } | { name: "new"; start: EditorStart } | { name: "doc"; uuid: string };
 
+/** Turns a rendering error into a readable message and a way back, instead of a blank page. */
+export class Boundary extends React.Component<{ onBack: () => void; children: ReactNode }, { error?: Error }> {
+  override state: { error?: Error } = {};
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+  override render() {
+    const { error } = this.state;
+    if (!error) return this.props.children;
+    return (
+      <div className="crash" role="alert">
+        <h2>تعذّر عرض هذه الصفحة</h2>
+        <p>ارجع إلى قائمة الفواتير وحاول مرة أخرى. إذا تكرر الخطأ، أرسل لنا النص التالي مع اسم المتصفح الذي تستخدمه.</p>
+        <pre>
+          {error.name}: {error.message}
+          {"\n"}
+          {navigator.userAgent}
+        </pre>
+        <div className="actions">
+          <button type="button" className="btn primary" onClick={this.props.onBack}>
+            العودة إلى الفواتير
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
+
 export function App() {
   const [store, setStore] = useState<Store>(() => loadStore() ?? seedStore());
   const [view, setView] = useState<View>({ name: "list" });
   const [confirmReset, setConfirmReset] = useState(false);
 
   useEffect(() => saveStore(store), [store]);
-  useEffect(() => window.scrollTo({ top: 0 }), [view]);
+  useEffect(() => {
+    try {
+      window.scrollTo(0, 0);
+    } catch {
+      // Some embedded viewers refuse programmatic scrolling; staying put is fine.
+    }
+  }, [view]);
 
   const reset = () => {
     clearStore();
@@ -43,6 +78,7 @@ export function App() {
       </p>
 
       <main className="page">
+        <Boundary key={JSON.stringify(view)} onBack={() => setView({ name: "list" })}>
         {view.name === "list" && <InvoiceList store={store} go={setView} />}
         {view.name === "new" && (
           <Editor
@@ -56,6 +92,7 @@ export function App() {
           />
         )}
         {view.name === "doc" && <InvoicePage store={store} uuid={view.uuid} go={setView} />}
+        </Boundary>
       </main>
 
       <footer className="footer">

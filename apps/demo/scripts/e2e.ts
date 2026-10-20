@@ -146,5 +146,33 @@ if (shots) {
 }
 
 check(consoleErrors.length === 0, `no console errors${consoleErrors.length ? `: ${consoleErrors.join(" | ")}` : ""}`);
+
+// A screen that throws shows the error and a way back instead of a blank page.
+await page.setViewportSize({ width: 1360, height: 900 });
+await page.evaluate(() => {
+  const s = JSON.parse(localStorage.getItem("khatm-demo-v2")!);
+  s.docs[0].totals.lines = []; // the invoice table reads totals for each line
+  localStorage.setItem("khatm-demo-v2", JSON.stringify(s));
+});
+await page.reload();
+await page.locator("button.row").last().click();
+check(await page.locator(".crash").isVisible(), "a broken screen shows an error message, not a blank page");
+await page.locator(".crash .btn").click();
+check(await page.locator("#new-invoice").isVisible(), "the error message leads back to the list");
+
+// Saved data in an outdated shape is discarded, not rendered.
+await page.evaluate(() => localStorage.setItem("khatm-demo-v2", JSON.stringify({ docs: [{ number: "x" }] })));
+await page.reload();
+check((await rows()) === 6, "outdated saved data is replaced by fresh example data");
+
+// If the app cannot start (here: the Artifact build with its CDN blocked), the page says so.
+const blocked = await browser.newPage();
+await blocked.route("https://cdnjs.cloudflare.com/**", (r) => r.abort());
+await blocked.route("https://fonts.googleapis.com/**", (r) => r.abort());
+await blocked.goto(`file://${join(root, "dist", "index.html")}`);
+await blocked.waitForTimeout(6500);
+const bootText = (await blocked.locator(".crash pre").textContent()) ?? "";
+check(bootText.includes("تعذّر تحميل") && bootText.includes("cdnjs"), "a page that cannot start explains why instead of staying blank");
+await blocked.close();
 await browser.close();
 process.exit(failures ? 1 : 0);

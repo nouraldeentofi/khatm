@@ -93,7 +93,7 @@ export interface Store {
 
 /** Appends a document to the demo device's chain. */
 export function append(store: Store, draft: Draft, customerId: string, at?: Date): Store {
-  const last = store.docs.at(-1);
+  const last = store.docs[store.docs.length - 1];
   const icv = (last?.icv ?? 0) + 1;
   const doc = issue(draft, { icv, lastHash: last?.hash ?? FIRST_PIH, number: `INV-${String(icv).padStart(5, "0")}` }, at);
   return { ...store, docs: [...store.docs, doc], docCustomer: { ...store.docCustomer, [doc.uuid]: customerId } };
@@ -134,7 +134,15 @@ const STORE_KEY = "khatm-demo-v2";
 export function loadStore(): Store | undefined {
   try {
     const raw = localStorage.getItem(STORE_KEY);
-    return raw ? (JSON.parse(raw) as Store) : undefined;
+    const s = raw ? (JSON.parse(raw) as Store) : undefined;
+    // Anything saved by an older shape of the demo is dropped rather than half-rendered.
+    const ok =
+      s &&
+      Array.isArray(s.docs) &&
+      Array.isArray(s.customers) &&
+      typeof s.docCustomer === "object" &&
+      s.docs.every((d) => d && d.uuid && d.totals?.lines && d.input?.lines && d.input.seller && typeof d.xml === "string");
+    return ok ? s : undefined;
   } catch {
     return undefined;
   }

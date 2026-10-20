@@ -1,7 +1,7 @@
 // Onboards one EGS unit against ZATCA and, outside production, clears and reports a test invoice.
 //
-//   pnpm --filter @fatoora/zatca onboard --env sandbox
-//   pnpm --filter @fatoora/zatca onboard --env simulation --otp 123456 --profile ./my-company.json
+//   pnpm --filter @khatm/zatca onboard --env sandbox
+//   pnpm --filter @khatm/zatca onboard --env simulation --otp 123456 --profile ./my-company.json
 //
 // Writes the private key and CSIDs to <repo>/.zatca/<env>/<commonName>/ (git-ignored, mode 600).
 import { randomUUID } from "node:crypto";
@@ -47,7 +47,7 @@ const profile = values.profile
       },
       csr: {
         commonName: `EGS-${randomUUID().slice(0, 8)}`,
-        serialNumber: `1-Fatoora|2-0.1|3-${randomUUID()}`,
+        serialNumber: `1-Khatm|2-0.1|3-${randomUUID()}`,
         vatNumber: "399999999900003",
         organizationUnit: "Riyadh Branch",
         organizationName: "Maximum Speed Tech Supply LTD",

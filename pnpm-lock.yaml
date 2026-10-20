@@ -10,10 +10,10 @@ importers:
 
   packages/core:
     dependencies:
-      '@fatoora/db':
+      '@khatm/db':
         specifier: workspace:*
         version: link:../db
-      '@fatoora/zatca':
+      '@khatm/zatca':
         specifier: workspace:*
         version: link:../zatca
       drizzle-orm:

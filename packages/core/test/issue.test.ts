@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { asc, eq, sql } from "drizzle-orm";
 import postgres from "postgres";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { createDb, customers, devices, invoices, organizations, runMigrations, submissions, type Db } from "@fatoora/db";
-import { FIRST_PIH, invoiceHash, toSubmissionResult, type FatooraClient } from "@fatoora/zatca";
+import { createDb, customers, devices, invoices, organizations, runMigrations, submissions, type Db } from "@khatm/db";
+import { FIRST_PIH, invoiceHash, toSubmissionResult, type FatooraClient } from "@khatm/zatca";
 import { IssueError, LocalFsStorage, SecretBox, issueInvoice, submitInvoice, type CoreContext } from "../src/index.ts";
 import { sdkAvailable, sdkValidate } from "../../zatca/test/sdk.ts";
 
@@ -58,7 +58,7 @@ describe.runIf(pgUp)("issueInvoice against PostgreSQL", () => {
         environment: "sandbox",
         status: "active",
         commonName: "EGS-test",
-        serialNumber: "1-Fatoora|2-0.1|3-test",
+        serialNumber: "1-Khatm|2-0.1|3-test",
         privateKeyEnc: secrets.encrypt(privateKeyPem),
         csidToken: Buffer.from(certificate).toString("base64"),
         csidSecretEnc: secrets.encrypt("secret"),

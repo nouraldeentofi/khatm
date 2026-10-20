@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
-import { auditLog, devices, invoices, submissions } from "@fatoora/db";
-import type { FatooraClient, SubmissionResult } from "@fatoora/zatca";
+import { auditLog, devices, invoices, submissions } from "@khatm/db";
+import type { FatooraClient, SubmissionResult } from "@khatm/zatca";
 import type { CoreContext } from "./issue.ts";
 
 export const MAX_ATTEMPTS = 8;

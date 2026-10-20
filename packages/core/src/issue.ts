@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { auditLog, customers, devices, invoiceLines, invoices, organizations, type Db } from "@fatoora/db";
+import { auditLog, customers, devices, invoiceLines, invoices, organizations, type Db } from "@khatm/db";
 import {
   FIRST_PIH,
   buildInvoiceXml,
@@ -11,7 +11,7 @@ import {
   type Audience,
   type DocumentKind,
   type InvoiceInput,
-} from "@fatoora/zatca";
+} from "@khatm/zatca";
 import type { SecretBox } from "./secrets.ts";
 import type { StorageAdapter } from "./storage.ts";
 

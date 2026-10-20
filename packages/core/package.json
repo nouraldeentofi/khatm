@@ -1,5 +1,5 @@
 {
-  "name": "@fatoora/core",
+  "name": "@khatm/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -13,8 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@fatoora/db": "workspace:*",
-    "@fatoora/zatca": "workspace:*",
+    "@khatm/db": "workspace:*",
+    "@khatm/zatca": "workspace:*",
     "drizzle-orm": "0.45.4",
     "postgres": "3.4.9"
   },

@@ -7,7 +7,7 @@ import { sdkTestCredentials } from "./helpers.ts";
 
 const CSR = {
   commonName: "EGS-test",
-  serialNumber: "1-Fatoora|2-1.0|3-6f4d20e0-6b6b-4f2e-9d8f-111111111111",
+  serialNumber: "1-Khatm|2-1.0|3-6f4d20e0-6b6b-4f2e-9d8f-111111111111",
   vatNumber: SELLER.vatNumber,
   organizationUnit: "Riyadh Branch",
   organizationName: "Maximum Speed Tech Supply LTD",

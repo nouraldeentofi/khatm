@@ -1,5 +1,5 @@
 {
-  "name": "fatoora-saas",
+  "name": "khatm",
   "private": true,
   "packageManager": "pnpm@10.28.0",
   "engines": { "node": ">=22" },

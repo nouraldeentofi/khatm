@@ -1,8 +1,7 @@
 name: pages
 # Builds the public demo (apps/demo) and publishes it to the gh-pages branch.
-# Manual only: Chrome's Safe Browsing flagged the github.io copy (a new page on a free
-# host that names ZATCA and asks for tax numbers looks like phishing to its classifier).
-# The demo goes back up on the product's own domain.
+# Manual for now: Chrome's Safe Browsing flagged the first github.io copy, and the site
+# should only change on purpose until the review clears.
 on:
   workflow_dispatch:
 permissions:
@@ -20,6 +19,8 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @khatm/demo build
+        env:
+          GOOGLE_SITE_VERIFICATION: ${{ vars.GOOGLE_SITE_VERIFICATION }}
       - name: Publish to gh-pages
         working-directory: apps/demo/dist/site
         env:

@@ -42,7 +42,7 @@ export type TaxId = (typeof TAX_OPTIONS)[number]["id"];
 export const PAYMENT_OPTIONS = [
   ["bank_transfer", "تحويل بنكي"],
   ["cash", "نقداً"],
-  ["card", "مدى أو بطاقة ائتمانية"],
+  ["card", "شبكة (مدى)"],
   ["credit", "آجل"],
 ] as const;
 export type Payment = (typeof PAYMENT_OPTIONS)[number][0];

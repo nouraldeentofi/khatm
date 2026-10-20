@@ -1,13 +1,18 @@
-// Bundles the demo into one self-contained page, in two builds (see the bottom).
-import { build, type Plugin } from "esbuild";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// Builds the demo twice:
+//   dist/index.html  → one self-contained file, published as an Artifact (the viewer adds the
+//                      document skeleton; React comes from cdnjs, the viewer's allow-listed host).
+//   dist/site/       → the public site: a small index.html plus readable, unminified-identifier
+//                      assets with a source map, so anyone (people or scanners) can see what runs.
+import { build, type BuildOptions, type Plugin } from "esbuild";
+import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const root = join(import.meta.dirname, "..");
 const src = (f: string) => join(root, "src", f);
+const SITE = join(root, "dist", "site");
 
-// zod re-exports every locale (~400 KB); the demo only needs English messages,
-// which the page translates itself.
+// zod re-exports every locale (~400 KB); the demo only needs English messages, which the
+// page translates itself.
 const zodEnglishOnly: Plugin = {
   name: "zod-english-only",
   setup(b) {
@@ -22,10 +27,6 @@ const zodEnglishOnly: Plugin = {
   },
 };
 
-type Host = "artifact" | "pages";
-
-// The Artifact build loads React from cdnjs (the viewer's allow-listed host); the public
-// site bundles it so it never depends on a third-party script host.
 const reactFromCdn: Plugin = {
   name: "react-from-cdn",
   setup(b) {
@@ -33,34 +34,38 @@ const reactFromCdn: Plugin = {
   },
 };
 
-async function bundle(host: Host): Promise<string> {
-  const result = await build({
-    entryPoints: [src("main.tsx")],
-    plugins: host === "artifact" ? [zodEnglishOnly, reactFromCdn] : [zodEnglishOnly],
-    bundle: true,
-    write: false,
-    format: "iife",
-    platform: "browser",
-    target: "es2020",
-    minify: true,
-    legalComments: "none",
-    jsx: "transform",
-    jsxFactory: "React.createElement",
-    jsxFragment: "React.Fragment",
-    alias: { "node:crypto": src("node-crypto-shim.ts") },
-    inject: [src("buffer-global.ts")],
-    define: { "process.env.NODE_ENV": '"production"', CAN_SAVE_FILES: String(host === "pages") },
-  });
-  return result.outputFiles[0]!.text.replace(/<\/script/gi, "<\\/script");
-}
+const common: BuildOptions = {
+  entryPoints: [src("main.tsx")],
+  bundle: true,
+  format: "iife",
+  platform: "browser",
+  target: "es2020",
+  jsx: "transform",
+  jsxFactory: "React.createElement",
+  jsxFragment: "React.Fragment",
+  alias: { "node:crypto": src("node-crypto-shim.ts") },
+  inject: [src("buffer-global.ts")],
+};
 
-export const REACT_URL = "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js";
-export const REACT_DOM_URL = "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js";
-const css = readFileSync(src("styles.css"), "utf8");
+const BANNER = `/*!
+ * Khatm (ختم) — e-invoicing demo. Open source: https://github.com/nouraldeentofi/khatm
+ * Runs entirely in the browser: builds UBL 2.1 invoices, hashes and signs them, and draws
+ * the QR code. Nothing typed on the page is sent anywhere.
+ * Signing uses the public test certificate and key shipped in the official e-invoicing
+ * SDK (Data/Certificates); documents signed with them have no tax validity.
+ */`;
 
-// If the app has not drawn anything a few seconds after load, say so on the page and show
-// what failed, rather than leaving a blank screen.
-const bootGuard = `<script>
+const REACT_URL = "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js";
+const REACT_DOM_URL = "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js";
+const FONTS = `<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">`;
+const TITLE = "ختم للفوترة";
+const DESCRIPTION = "نسخة عرض من ختم، برنامج فواتير إلكترونية للمنشآت في المملكة. مشروع مفتوح المصدر يعمل داخل المتصفح.";
+
+// If nothing has rendered a few seconds after load, say so on the page and show what
+// failed, rather than leaving a blank screen.
+const BOOT_GUARD = `<script>
 (function () {
   var errors = [];
   window.addEventListener("error", function (e) {
@@ -76,29 +81,74 @@ const bootGuard = `<script>
 })();
 </script>`;
 
-const page = (js: string, host: Host) => `<title>ختم للفوترة</title>
+// ---- Artifact: one file, minified, React from cdnjs, no print or download.
+const artifactJs = await build({
+  ...common,
+  plugins: [zodEnglishOnly, reactFromCdn],
+  write: false,
+  minify: true,
+  legalComments: "none",
+  define: { "process.env.NODE_ENV": '"production"', CAN_SAVE_FILES: "false" },
+});
+const css = readFileSync(src("styles.css"), "utf8");
+const artifact = `<title>${TITLE}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="جرّب إصدار فاتورة إلكترونية متوافقة مع المرحلة الثانية من زاتكا: فاتورة ضريبية ومبسطة وإشعارات دائنة ومدينة.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<meta name="description" content="${DESCRIPTION}">
+${FONTS}
 <style>${css}</style>
 <div id="root"></div>
 <script>document.documentElement.lang = "ar"; document.documentElement.dir = "rtl";</script>
-${bootGuard}
-${host === "artifact" ? `<script src="${REACT_URL}"></script>\n<script src="${REACT_DOM_URL}"></script>` : ""}
-<script>${js}</script>
+${BOOT_GUARD}
+<script src="${REACT_URL}"></script>
+<script src="${REACT_DOM_URL}"></script>
+<script>${artifactJs.outputFiles[0]!.text.replace(/<\/script/gi, "<\\/script")}</script>
 `;
-
-const fullDocument = (body: string) =>
-  `<!doctype html>\n<html lang="ar" dir="rtl">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n<meta name="theme-color" content="#0d5c3f">\n</head>\n<body>\n${body}</body>\n</html>\n`;
-
-// dist/index.html → published as an Artifact (the viewer adds the document skeleton).
-// dist/site/index.html → the public site on GitHub Pages, where print and download work.
-const artifact = page(await bundle("artifact"), "artifact");
-const site = fullDocument(page(await bundle("pages"), "pages"));
-mkdirSync(join(root, "dist", "site"), { recursive: true });
+mkdirSync(join(root, "dist"), { recursive: true });
 writeFileSync(join(root, "dist", "index.html"), artifact);
-writeFileSync(join(root, "dist", "site", "index.html"), site);
-writeFileSync(join(root, "dist", "site", ".nojekyll"), "");
-console.log(`dist/index.html ${(Buffer.byteLength(artifact) / 1024).toFixed(0)} KB · dist/site/index.html ${(Buffer.byteLength(site) / 1024).toFixed(0)} KB`);
+
+// ---- Public site: plain files, React bundled, readable names, source map.
+rmSync(SITE, { recursive: true, force: true });
+mkdirSync(join(SITE, "assets"), { recursive: true });
+await build({
+  ...common,
+  plugins: [zodEnglishOnly],
+  outfile: join(SITE, "assets", "khatm.js"),
+  minifyWhitespace: true,
+  minifySyntax: true,
+  minifyIdentifiers: false,
+  sourcemap: "linked",
+  banner: { js: BANNER },
+  define: { "process.env.NODE_ENV": '"production"', CAN_SAVE_FILES: "true" },
+});
+copyFileSync(src("styles.css"), join(SITE, "assets", "khatm.css"));
+const verification = process.env.GOOGLE_SITE_VERIFICATION
+  ? `\n<meta name="google-site-verification" content="${process.env.GOOGLE_SITE_VERIFICATION}">`
+  : "";
+const site = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d5c3f">
+<title>${TITLE}</title>
+<meta name="description" content="${DESCRIPTION}">
+<meta name="author" content="Nour Aldeen Tofi">${verification}
+<link rel="author" href="https://nouraldeentofi.com">
+${FONTS}
+<link rel="stylesheet" href="assets/khatm.css">
+</head>
+<body>
+<div id="root"></div>
+${BOOT_GUARD}
+<script src="assets/khatm.js" defer></script>
+<noscript>هذه الصفحة تحتاج JavaScript. الكود المصدري: https://github.com/nouraldeentofi/khatm</noscript>
+</body>
+</html>
+`;
+writeFileSync(join(SITE, "index.html"), site);
+writeFileSync(join(SITE, ".nojekyll"), "");
+
+const kb = (f: string) => `${(readFileSync(f).length / 1024).toFixed(0)} KB`;
+console.log(
+  `dist/index.html ${kb(join(root, "dist", "index.html"))} · site: index.html ${kb(join(SITE, "index.html"))}, khatm.js ${kb(join(SITE, "assets", "khatm.js"))}`,
+);

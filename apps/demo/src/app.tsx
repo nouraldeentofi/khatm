@@ -74,7 +74,7 @@ export function App() {
         </div>
       </header>
       <p className="demo-note">
-        نسخة تجريبية للعرض. الفواتير هنا موقّعة بشهادة اختبار من زاتكا ولا تُرسل إليها، وتبقى في متصفحك فقط.
+        نسخة عرض. الفواتير هنا تُوقَّع بشهادة اختبار عامة، ولا تُرسل إلى أي جهة، وتبقى في متصفحك فقط.
       </p>
 
       <main className="page">
@@ -96,7 +96,23 @@ export function App() {
       </main>
 
       <footer className="footer">
-        <span>ختم · فوترة إلكترونية متوافقة مع المرحلة الثانية من زاتكا</span>
+        <div className="about">
+          <p>
+            <b>عن هذا العرض.</b> ختم برنامج فواتير إلكترونية للمنشآت في المملكة، يعمل وفق متطلبات المرحلة الثانية (الربط
+            والتكامل). هذه الصفحة نسخة عرض تعمل بالكامل داخل متصفحك: لا تطلب تسجيل دخول ولا بيانات دفع، ولا ترسل ما تكتبه إلى أي
+            خادم.
+          </p>
+          <p>
+            مشروع مفتوح المصدر من تطوير Nour Aldeen Tofi ·{" "}
+            <a href="https://github.com/nouraldeentofi/khatm" target="_blank" rel="noopener noreferrer">
+              الكود على GitHub
+            </a>{" "}
+            ·{" "}
+            <a href="https://nouraldeentofi.com" target="_blank" rel="noopener noreferrer">
+              nouraldeentofi.com
+            </a>
+          </p>
+        </div>
         {confirmReset ? (
           <span className="inline-confirm">
             ستُحذف الفواتير التي أصدرتها وتعود بيانات العرض.

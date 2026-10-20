@@ -474,11 +474,15 @@ input.ltr { text-align: left; }
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 8px 16px;
+  align-items: flex-start;
+  gap: 12px 24px;
   color: var(--ink-3);
   font-size: var(--t-xs);
 }
 .inline-confirm { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.about { display: grid; gap: 4px; max-width: 72ch; }
+.about b { color: var(--ink-2); font-weight: 600; }
+.about a { color: var(--brand); text-underline-offset: 3px; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 

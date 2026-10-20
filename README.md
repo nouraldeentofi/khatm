@@ -49,8 +49,9 @@ pnpm --filter @khatm/zatca onboard --env sandbox
 
 ## النسخة التجريبية (apps/demo)
 
-النسخة المنشورة على github.io موقوفة: متصفح Chrome وسمها «موقع خطِر» (تصنيف آلي خاطئ لصفحة جديدة على
-استضافة مجانية بتذكر زاتكا وبتطلب أرقام ضريبية). بترجع على دومين المنتج.
+**جرّبها:** https://nouraldeentofi.github.io/khatm/ — أول نسخة انوسمت «موقع خطِر» بمتصفح Chrome (تصنيف آلي لصفحة
+جديدة على استضافة مجانية بتذكر جهة حكومية وبتطلب أرقام ضريبية، وكودها كله مضغوط جوّا الصفحة). النسخة الحالية ملفات
+مقروءة مع source map، وفيها مين طوّرها ورابط الكود، وطلب المراجعة من Google Search Console.
 
 تطبيق صغير بتجربة العميل: قائمة فواتير مصنّفة حسب العميل، إصدار فاتورة ضريبية لمنشأة أو مبسطة لفرد،
 إشعار دائن أو مدين من صفحة الفاتورة، طباعة وحفظ PDF، وإرسال عبر واتساب. بيشتغل كله بالمتصفح بنفس كود
@@ -58,7 +59,8 @@ pnpm --filter @khatm/zatca onboard --env sandbox
 النشر يدوي من `.github/workflows/pages.yml`.
 
 ```bash
-pnpm --filter @khatm/demo build   # → dist/site/index.html (الموقع) و dist/index.html (نسخة Artifact)
+pnpm --filter @khatm/demo build   # → dist/site/ (الموقع: index.html + assets) و dist/index.html (نسخة Artifact)
+GOOGLE_SITE_VERIFICATION=xxxx pnpm --filter @khatm/demo build   # بيضيف وسم التحقق تبع Search Console
 pnpm --filter @khatm/demo e2e     # Chromium: يصدر الأنواع الستة ويمررها على مدقّق زاتكا الرسمي
 ```
 
